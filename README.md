@@ -1,6 +1,6 @@
 # Hi, I'm Siddhartha 👋
 
-I'm an engineer in Bengaluru who likes sitting right between customers and code. Someone tells me what's getting in their way, and I design the fix, build it, ship it, and stay around to make sure it keeps working. That last part is where most of the interesting problems live.
+I'm a generalist engineer in Bengaluru who likes sitting right between customers and code. Someone tells me what's getting in their way, and I design the fix, build it, ship it, and stay around to make sure it keeps working. That last part is where most of the interesting problems live.
 
 The roles that fit me best are **Solution Architect**, **AI Agent Engineer**, **AI Engineer** and **Technical Account Manager**. In practice I'm a bit of all four, usually in the same week.
 
