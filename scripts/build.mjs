@@ -1,113 +1,82 @@
-// Generates assets/header.svg and assets/card-*.svg. Run: node scripts/build.mjs
+// Generates assets/header.svg and assets/row-*.svg. Run: node scripts/build.mjs
 import { readFileSync, writeFileSync } from 'node:fs';
 
-const BG = '#0B0B0D', PANEL = '#111114', LINE = '#232328', INK = '#F2F2F0', MUTE = '#8B8B93', DIM = '#5A5A63';
-const ACCENT = '#FF8A3D';
-const SANS = "-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif";
+const PAPER = '#F7F4EE', INK = '#1E1C19', MUTE = '#6B665E', DIM = '#9A948A', RULE = '#DED8CC', GRID = '#ECE7DD';
+const ACCENT = '#C2410C';
+const SERIF = "Georgia, 'Iowan Old Style', 'Times New Roman', serif";
 const MONO = "ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace";
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-// deterministic value noise for the dither band
-function rng(seed) { let s = seed >>> 0; return () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296; }
-function makeNoise(seed, gw, gh) {
-  const r = rng(seed); const g = [];
-  for (let y = 0; y <= gh; y++) { g[y] = []; for (let x = 0; x <= gw; x++) g[y][x] = r(); }
-  const sm = t => t * t * (3 - 2 * t);
-  return (fx, fy) => {
-    const x0 = Math.floor(fx), y0 = Math.floor(fy), tx = sm(fx - x0), ty = sm(fy - y0);
-    const a = g[y0][x0], b = g[y0][x0 + 1], c = g[y0 + 1][x0], d = g[y0 + 1][x0 + 1];
-    return (a * (1 - tx) + b * tx) * (1 - ty) + (c * (1 - tx) + d * tx) * ty;
-  };
-}
-function ditherBand(x, y, w, h, seed) {
-  const step = 6, cols = Math.floor(w / step), rows = Math.floor(h / step);
-  const n1 = makeNoise(seed, 12, 4), n2 = makeNoise(seed + 7, 40, 10);
-  let out = '';
-  for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
-    const u = i / cols, v = j / rows;
-    const wave = Math.exp(-Math.pow((v - (0.5 + 0.18 * Math.sin(u * 6.5 + 1))) / 0.26, 2));
-    const val = (0.55 * n1(u * 12, v * 4) + 0.45 * n2(u * 40, v * 10)) * (0.45 + 0.9 * wave);
-    const cx = x + i * step + 3, cy = y + j * step + 3;
-    if (val > 0.72) out += `<rect x="${cx - 3}" y="${cy - 3}" width="6" height="6" fill="${ACCENT}"/>`;
-    else if (val > 0.6) out += `<circle cx="${cx}" cy="${cy}" r="2.2" fill="${ACCENT}"/>`;
-    else if (val > 0.5) out += `<circle cx="${cx}" cy="${cy}" r="1.3" fill="${ACCENT}" opacity="0.7"/>`;
-    else if (val > 0.33) out += `<circle cx="${cx}" cy="${cy}" r="1.3" fill="#3A3A42"/>`;
-    else out += `<circle cx="${cx}" cy="${cy}" r="0.9" fill="#26262C"/>`;
-  }
-  return out;
-}
-const label = (x, y, t, anchor = 'start') => `<text x="${x}" y="${y}" font-family="${MONO}" font-size="10" letter-spacing="1.4" fill="${DIM}" text-anchor="${anchor}">${esc(t.toUpperCase())}</text>`;
-const mono = (x, y, t, size = 12, fill = INK, anchor = 'start', weight = 500) => `<text x="${x}" y="${y}" font-family="${MONO}" font-size="${size}" font-weight="${weight}" fill="${fill}" text-anchor="${anchor}">${esc(t)}</text>`;
-const sans = (x, y, t, size = 14, fill = INK, weight = 400) => `<text x="${x}" y="${y}" font-family="${SANS}" font-size="${size}" font-weight="${weight}" fill="${fill}">${esc(t)}</text>`;
+const mono = (x, y, t, size = 11, fill = INK, anchor = 'start', weight = 400, ls = 0) => `<text x="${x}" y="${y}" font-family="${MONO}" font-size="${size}" font-weight="${weight}" fill="${fill}" text-anchor="${anchor}" letter-spacing="${ls}">${esc(t)}</text>`;
+const label = (x, y, t, anchor = 'start', fill = ACCENT) => mono(x, y, t.toUpperCase(), 9.5, fill, anchor, 600, 1.6);
+const serif = (x, y, t, size, fill = INK, weight = 400, style = 'normal', anchor = 'start') => `<text x="${x}" y="${y}" font-family="${SERIF}" font-size="${size}" font-weight="${weight}" font-style="${style}" fill="${fill}" text-anchor="${anchor}">${esc(t)}</text>`;
+const wrap = (t, max) => { const out = []; let cur = ''; for (const w of t.split(' ')) { if ((cur + ' ' + w).trim().length > max) { out.push(cur.trim()); cur = w; } else cur += ' ' + w; } out.push(cur.trim()); return out; };
+const grid = (W, H) => { let g = ''; for (let x = 40; x < W; x += 40) g += `<line x1="${x}" y1="0" x2="${x}" y2="${H}" stroke="${GRID}" stroke-width="1"/>`; for (let y = 40; y < H; y += 40) g += `<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="${GRID}" stroke-width="1"/>`; return g; };
 
 // ---------- header ----------
 {
-  const W = 1200, H = 470;
+  const W = 1200, H = 420;
   let s = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`;
-  s += `<rect width="${W}" height="${H}" rx="8" fill="${BG}"/><rect x="0.5" y="0.5" width="${W - 1}" height="${H - 1}" rx="8" fill="none" stroke="${LINE}"/>`;
-  // top strip
-  s += mono(22, 29, 'siddhartha / README.md', 11, MUTE);
-  s += `<circle cx="196" cy="25" r="3.5" fill="${ACCENT}"><animate attributeName="opacity" values="1;0.25;1" dur="2.4s" repeatCount="indefinite"/></circle>`;
-  s += mono(207, 29, 'BUILDING', 10, INK, 'start', 600);
-  s += mono(W - 22, 29, 'github.com/Siddharthachuahan9', 11, MUTE, 'end');
-  s += `<line x1="0" y1="44" x2="${W}" y2="44" stroke="${LINE}"/>`;
-  // dither band
-  s += `<clipPath id="band"><rect x="1" y="45" width="${W - 2}" height="130"/></clipPath><g clip-path="url(#band)">${ditherBand(0, 45, W, 132, 20261103)}</g>`;
-  s += `<line x1="0" y1="177" x2="${W}" y2="177" stroke="${LINE}"/>`;
-  // left: identity
-  s += `<text x="26" y="236" font-family="${SANS}" font-size="44" font-weight="700" fill="${INK}" letter-spacing="-1">Siddhartha Chauhan</text>`;
-  s += sans(28, 266, 'Generalist engineer. I sit between customers and code, and ship the thing in the middle.', 15, MUTE);
-  const rows = [['now', 'building AI agents for customers at Observe.AI'], ['roles', 'solution architect · AI agent engineer · AI engineer · TAM'], ['base', 'Bengaluru · hybrid · remote'], ['rule', 'if the same problem shows up twice, it becomes a tool']];
-  rows.forEach(([k, v], i) => { const y = 306 + i * 30; s += label(28, y, k); s += mono(96, y, v, 12.5, INK); });
-  // right: stats grid
-  const gx = 800, gy = 196, gw = 376, gh = 250, cw = gw / 2, ch = gh / 2;
-  s += `<rect x="${gx}" y="${gy}" width="${gw}" height="${gh}" rx="6" fill="${PANEL}" stroke="${LINE}"/>`;
-  s += `<line x1="${gx + cw}" y1="${gy}" x2="${gx + cw}" y2="${gy + gh}" stroke="${LINE}"/><line x1="${gx}" y1="${gy + ch}" x2="${gx + gw}" y2="${gy + ch}" stroke="${LINE}"/>`;
-  const stats = [['projects live', '6'], ['years in production', '3+'], ['status', 'open to roles'], ['focus', 'agents · integrations']];
-  stats.forEach(([k, v], i) => {
-    const x = gx + (i % 2) * cw + 18, y = gy + Math.floor(i / 2) * ch + 30;
-    s += label(x, y, k);
-    const big = v.length <= 3;
-    s += `<text x="${x}" y="${y + (big ? 52 : 40)}" font-family="${big ? SANS : MONO}" font-size="${big ? 40 : 13}" font-weight="${big ? 700 : 600}" fill="${i === 2 ? ACCENT : INK}" letter-spacing="${big ? -1 : 0}">${esc(v)}</text>`;
+  s += `<rect width="${W}" height="${H}" fill="${PAPER}"/>${grid(W, H)}<rect x="0.5" y="0.5" width="${W - 1}" height="${H - 1}" fill="none" stroke="${RULE}"/>`;
+  // corner marks
+  s += mono(36, 40, 'Siddharthachuahan9 / README', 10.5, DIM);
+  s += mono(W - 36, 40, 'sidstack.in', 10.5, DIM, 'end');
+  // name + line
+  s += serif(34, 128, 'Siddhartha Chauhan', 58, INK, 700);
+  s += serif(36, 166, 'Generalist engineer. I sit between customers and code, and ship the thing in the middle.', 19, MUTE, 400, 'italic');
+  // facts, right column
+  const facts = [['now', 'forward deployed engineering and support, building AI agents for customers'], ['roles', 'solution architect · AI agent engineer · AI engineer · TAM'], ['base', 'Bengaluru · hybrid · remote'], ['rule', 'if the same problem shows up twice, it becomes a tool']];
+  facts.forEach(([k, v], i) => { const y = 210 + i * 26; s += label(36, y, k); s += mono(100, y, v, 12, INK); });
+  // the loop diagram
+  const steps = ['customer problem', 'understand', 'design', 'build', 'deploy', 'debug', 'improve'];
+  const y0 = 338, nh = 30, gap = 26, x0 = 36;
+  const widths = steps.map(t => Math.round(t.length * 7.4 + 28));
+  let x = x0; const centers = [];
+  s += `<defs><marker id="arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0.5 L7,4 L0,7.5" fill="none" stroke="${INK}" stroke-width="1.2"/></marker></defs>`;
+  steps.forEach((t, i) => {
+    const w = widths[i], first = i === 0;
+    s += `<rect x="${x}" y="${y0}" width="${w}" height="${nh}" rx="15" fill="${first ? ACCENT : PAPER}" stroke="${first ? ACCENT : INK}" stroke-width="1.2"/>`;
+    s += mono(x + w / 2, y0 + 19.5, t, 11, first ? PAPER : INK, 'middle', 500);
+    centers.push([x, x + w]);
+    if (i < steps.length - 1) s += `<line x1="${x + w}" y1="${y0 + nh / 2}" x2="${x + w + gap}" y2="${y0 + nh / 2}" stroke="${INK}" stroke-width="1.2" marker-end="url(#arr)"/>`;
+    x += w + gap;
   });
+  // loop back from improve to understand
+  const [, lastR] = centers[centers.length - 1]; const [uL] = centers[1]; const ux = uL + (centers[1][1] - uL) / 2, ix = lastR - (centers[6][1] - centers[6][0]) / 2;
+  s += `<path d="M${ix},${y0 + nh} v14 H${ux} v-14" fill="none" stroke="${ACCENT}" stroke-width="1.2" stroke-dasharray="3 3" marker-end="url(#arr)"/>`;
+  s += mono(ux + 10, y0 + nh + 24, 'something will break. that is step five. then round again.', 10.5, DIM, 'start', 400);
+  s += label(W - 36, y0 + 19.5, 'how every engagement goes', 'end', DIM);
   s += '</svg>';
   writeFileSync('assets/header.svg', s);
 }
 
-// ---------- cards ----------
+// ---------- project rows ----------
 const projects = [
-  { id: 'agentissue', name: 'AgentIssue', url: 'https://agentissue.tech', kind: 'runtime guardrails', blurb: 'A safety layer for AI agents. Every action is checked first: allow, block, or wait for a human.', stack: 'TypeScript · Cloudflare', status: 'building', since: 'Oct 2026', cta: 'visit project' },
-  { id: 'tracelens', name: 'TraceLens', url: 'https://tracelens.site', kind: 'chrome devtools extension', blurb: 'Explains slow or failing API calls in one sentence and exports a Jira-ready report. Open source.', stack: 'JavaScript · MV3', status: 'live', since: 'May 2026', cta: 'visit project' },
-  { id: 'json0', name: 'json0.dev', url: 'https://json0.dev', kind: 'browser-only dev tools', blurb: 'Thirty-odd JSON, CSV and MongoDB tools. Nothing you paste leaves your browser, and the build enforces it.', stack: 'Next.js · TypeScript', status: 'live', since: 'Aug 2026', cta: 'visit project' },
-  { id: 'pdfkit', name: 'PDFKit Pro', url: 'https://pdfkit.pro', kind: 'client-side pdf toolkit', blurb: 'About twenty free PDF tools. Merge, split, sign, OCR. Files never leave your device.', stack: 'Next.js · pdf-lib', status: 'live', since: 'Mar 2026', cta: 'visit project' },
-  { id: 'linkzy', name: 'Linkzy', url: 'https://linkzy.fun', kind: 'link-in-bio on the edge', blurb: 'Runs entirely on Cloudflare’s free tier. Agent-friendly API, llms.txt and OpenAPI spec included.', stack: 'Hono · Workers · D1', status: 'live', since: 'Mar 2026', cta: 'visit project' },
-  { id: 'devhelp', name: 'DevHelp AI', url: 'https://debugger-flax.vercel.app', kind: 'multi-model error explainer', blurb: 'Paste a stack trace, pick OpenAI, Anthropic, Gemini or Groq, get a calm fix with the cost shown.', stack: 'Next.js · LLM SDKs', status: 'live', since: 'Feb 2026', cta: 'visit project' },
+  { id: 'agentissue', name: 'AgentIssue', url: 'agentissue.tech', kind: 'runtime guardrails for AI agents', blurb: 'A safety layer that checks every agent action before it runs. Allow, block, or wait for a human. Every decision lands in a signed audit trail.', stack: 'TypeScript · Cloudflare Workers · D1', status: 'building' },
+  { id: 'tracelens', name: 'TraceLens', url: 'tracelens.site', kind: 'open-source Chrome DevTools extension', blurb: 'Groups network requests into the click that caused them, explains slow or failing API calls in one sentence, decodes tokens, and writes the incident report.', stack: 'JavaScript · Manifest V3', status: 'live' },
+  { id: 'json0', name: 'json0.dev', url: 'json0.dev', kind: 'browser-only developer tools', blurb: 'Thirty-odd JSON, CSV and MongoDB tools. Diff, validate, query, format, JWT, hashing. Nothing you paste leaves your browser, and the build fails if it tries.', stack: 'Next.js · TypeScript', status: 'live' },
+  { id: 'pdfkit', name: 'PDFKit Pro', url: 'pdfkit.pro', kind: 'client-side PDF toolkit', blurb: 'About twenty free PDF tools: merge, split, compress, sign, OCR, Word to PDF and back. Files never leave the device, which matters when the file is a contract.', stack: 'Next.js · pdf-lib · tesseract.js', status: 'live' },
+  { id: 'linkzy', name: 'Linkzy', url: 'linkzy.fun', kind: 'link-in-bio on the edge', blurb: 'Runs entirely on Cloudflare’s free tier. Zero-package auth, edge-cached pages, analytics by country, and an API with llms.txt so agents can use it too.', stack: 'Hono · Workers · D1 · KV · R2', status: 'live' },
+  { id: 'devhelp', name: 'DevHelp AI', url: 'debugger-flax.vercel.app', kind: 'multi-model error explainer', blurb: 'Paste an error or stack trace, pick OpenAI, Anthropic, Gemini or Groq, get a calm explanation and a fix, with the cost of each answer shown beside it.', stack: 'Next.js · OpenAI, Anthropic, Gemini, Groq SDKs', status: 'live' },
 ];
-for (const p of projects) {
-  const W = 590, H = 500, img = readFileSync(`assets/shots/${p.id}.jpg`).toString('base64');
+projects.forEach((p, i) => {
+  const W = 1200, H = 176, img = readFileSync(`assets/shots/${p.id}.jpg`).toString('base64');
   let s = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`;
-  s += `<rect width="${W}" height="${H}" rx="8" fill="${BG}"/><rect x="0.5" y="0.5" width="${W - 1}" height="${H - 1}" rx="8" fill="none" stroke="${LINE}"/>`;
-  s += mono(18, 26, p.name.toLowerCase().replace(/\s+/g, '-'), 11, INK, 'start', 600);
-  s += mono(W - 18, 26, `${p.status === 'building' ? '● building' : 'since ' + p.since}`, 10.5, p.status === 'building' ? ACCENT : MUTE, 'end');
-  s += `<line x1="0" y1="40" x2="${W}" y2="40" stroke="${LINE}"/>`;
-  // screenshot, 554x281 box with rounded clip
-  s += `<clipPath id="shot"><rect x="18" y="56" width="554" height="281" rx="4"/></clipPath>`;
-  s += `<image href="data:image/jpeg;base64,${img}" x="18" y="56" width="554" height="281" preserveAspectRatio="xMidYMin slice" clip-path="url(#shot)"/>`;
-  s += `<rect x="18.5" y="56.5" width="553" height="280" rx="4" fill="none" stroke="${LINE}"/>`;
-  s += `<text x="18" y="373" font-family="${SANS}" font-size="22" font-weight="700" fill="${INK}" letter-spacing="-0.4">${esc(p.name)}</text>`;
-  s += mono(W - 18, 372, p.kind, 10.5, DIM, 'end');
-  // blurb, wrapped
-  const words = p.blurb.split(' '); const lines = []; let cur = '';
-  for (const w of words) { if ((cur + ' ' + w).trim().length > 78) { lines.push(cur.trim()); cur = w; } else cur += ' ' + w; }
-  lines.push(cur.trim());
-  lines.forEach((l, i) => { s += sans(18, 396 + i * 19, l, 13.5, MUTE); });
-  s += `<line x1="0" y1="438" x2="${W}" y2="438" stroke="${LINE}"/>`;
-  const meta = [['stack', p.stack], ['status', p.status]];
-  meta.forEach(([k, v], i) => { const x = 18 + i * 200; s += label(x, 458, k); s += mono(x, 478, v, 12, i === 1 && p.status === 'building' ? ACCENT : INK, 'start', 600); });
-  s += `<line x1="200" y1="438" x2="200" y2="${H}" stroke="${LINE}"/><line x1="400" y1="438" x2="400" y2="${H}" stroke="${LINE}"/>`;
-  s += `<rect x="416" y="452" width="156" height="34" rx="3" fill="${ACCENT}"/>`;
-  s += `<text x="494" y="474" font-family="${MONO}" font-size="11" font-weight="700" letter-spacing="1.2" fill="#121212" text-anchor="middle">${esc(p.cta.toUpperCase())}</text>`;
+  s += `<rect width="${W}" height="${H}" fill="${PAPER}"/><line x1="0" y1="0.5" x2="${W}" y2="0.5" stroke="${RULE}"/>`;
+  if (i === projects.length - 1) s += `<line x1="0" y1="${H - 0.5}" x2="${W}" y2="${H - 0.5}" stroke="${RULE}"/>`;
+  s += mono(36, 44, String(i + 1).padStart(2, '0'), 11, ACCENT, 'start', 600, 1);
+  s += serif(76, 50, p.name, 28, INK, 700);
+  s += mono(76 + p.name.length * 15.5 + 14, 48, p.kind, 11, DIM);
+  wrap(p.blurb, 92).forEach((l, j) => { s += serif(76, 80 + j * 21, l, 15, MUTE); });
+  s += label(76, 144, 'stack'); s += mono(126, 144, p.stack, 11, INK);
+  s += label(76, 162, 'status'); s += mono(126, 162, p.status, 11, p.status === 'building' ? ACCENT : INK, 'start', 600);
+  s += label(520, 144, 'at'); s += mono(542, 144, p.url + '  ↗', 11, INK, 'start', 600);
+  // screenshot window
+  const sx = 790, sy = 22, sw = 374, sh = 132;
+  s += `<clipPath id="c${i}"><rect x="${sx}" y="${sy}" width="${sw}" height="${sh}" rx="3"/></clipPath>`;
+  s += `<rect x="${sx + 4}" y="${sy + 4}" width="${sw}" height="${sh}" rx="3" fill="${INK}" opacity="0.12"/>`;
+  s += `<image href="data:image/jpeg;base64,${img}" x="${sx}" y="${sy}" width="${sw}" height="${sw * 599 / 1180}" preserveAspectRatio="xMidYMin slice" clip-path="url(#c${i})"/>`;
+  s += `<rect x="${sx + 0.5}" y="${sy + 0.5}" width="${sw - 1}" height="${sh - 1}" rx="3" fill="none" stroke="${INK}" stroke-width="1"/>`;
   s += '</svg>';
-  writeFileSync(`assets/card-${p.id}.svg`, s);
-}
+  writeFileSync(`assets/row-${p.id}.svg`, s);
+});
 console.log('built', 1 + projects.length, 'svgs');
