@@ -1,4 +1,4 @@
-// Generates assets/header.svg and assets/row-*.svg. Run: node scripts/build.mjs
+// Generates assets/hero.svg and assets/row-*.svg. Run: node scripts/build.mjs
 import { readFileSync, writeFileSync } from 'node:fs';
 
 const PAPER = '#F7F4EE', INK = '#1E1C19', MUTE = '#6B665E', DIM = '#9A948A', RULE = '#DED8CC', GRID = '#ECE7DD';
@@ -46,7 +46,7 @@ const grid = (W, H) => { let g = ''; for (let x = 40; x < W; x += 40) g += `<lin
   s += mono(ux + 10, y0 + nh + 24, 'something will break. that is step five. then round again.', 10.5, DIM, 'start', 400);
   s += label(W - 36, y0 + 19.5, 'how every engagement goes', 'end', DIM);
   s += '</svg>';
-  writeFileSync('assets/header.svg', s);
+  writeFileSync('assets/hero.svg', s);
 }
 
 // ---------- project rows ----------

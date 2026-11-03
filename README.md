@@ -1,4 +1,4 @@
-<a href="https://sidstack.in"><img src="assets/header.svg" alt="Siddhartha Chauhan. Generalist engineer. I sit between customers and code, and ship the thing in the middle." width="100%"></a>
+<a href="https://sidstack.in"><img src="assets/hero.svg" alt="Siddhartha Chauhan. Generalist engineer. I sit between customers and code, and ship the thing in the middle." width="100%"></a>
 
 <a href="https://agentissue.tech"><img src="assets/row-agentissue.svg" alt="AgentIssue: a safety layer for AI agents" width="100%"></a>
 <a href="https://tracelens.site"><img src="assets/row-tracelens.svg" alt="TraceLens: Chrome DevTools extension that explains slow or failing API calls" width="100%"></a>
