@@ -1,82 +1,73 @@
-// Generates assets/hero.svg and assets/row-*.svg. Run: node scripts/build.mjs
+// Generates assets/cover.svg and assets/feature-*.svg (magazine layout). Run: node scripts/build.mjs
 import { readFileSync, writeFileSync } from 'node:fs';
 
-const PAPER = '#F7F4EE', INK = '#1E1C19', MUTE = '#6B665E', DIM = '#9A948A', RULE = '#DED8CC', GRID = '#ECE7DD';
-const ACCENT = '#C2410C';
+const PAPER = '#FBFBF9', INK = '#141414', MUTE = '#444444', DIM = '#6B6B6B', RULE = '#D4D4D0', RED = '#D1242F';
 const SERIF = "Georgia, 'Iowan Old Style', 'Times New Roman', serif";
-const MONO = "ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace";
+const SANS = "Helvetica, Arial, 'Segoe UI', sans-serif";
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const mono = (x, y, t, size = 11, fill = INK, anchor = 'start', weight = 400, ls = 0) => `<text x="${x}" y="${y}" font-family="${MONO}" font-size="${size}" font-weight="${weight}" fill="${fill}" text-anchor="${anchor}" letter-spacing="${ls}">${esc(t)}</text>`;
-const label = (x, y, t, anchor = 'start', fill = ACCENT) => mono(x, y, t.toUpperCase(), 9.5, fill, anchor, 600, 1.6);
-const serif = (x, y, t, size, fill = INK, weight = 400, style = 'normal', anchor = 'start') => `<text x="${x}" y="${y}" font-family="${SERIF}" font-size="${size}" font-weight="${weight}" font-style="${style}" fill="${fill}" text-anchor="${anchor}">${esc(t)}</text>`;
+const T = (x, y, t, { f = SERIF, s = 15, w = 400, c = INK, st = 'normal', a = 'start', ls = 0 } = {}) =>
+  `<text x="${x}" y="${y}" font-family="${f}" font-size="${s}" font-weight="${w}" font-style="${st}" fill="${c}" text-anchor="${a}" letter-spacing="${ls}">${esc(t)}</text>`;
+const label = (x, y, t, c = RED, a = 'start') => T(x, y, t.toUpperCase(), { f: SANS, s: 10, w: 700, c, a, ls: 2 });
 const wrap = (t, max) => { const out = []; let cur = ''; for (const w of t.split(' ')) { if ((cur + ' ' + w).trim().length > max) { out.push(cur.trim()); cur = w; } else cur += ' ' + w; } out.push(cur.trim()); return out; };
-const grid = (W, H) => { let g = ''; for (let x = 40; x < W; x += 40) g += `<line x1="${x}" y1="0" x2="${x}" y2="${H}" stroke="${GRID}" stroke-width="1"/>`; for (let y = 40; y < H; y += 40) g += `<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="${GRID}" stroke-width="1"/>`; return g; };
 
-// ---------- header ----------
+// ---------- cover ----------
 {
-  const W = 1200, H = 420;
-  let s = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`;
-  s += `<rect width="${W}" height="${H}" fill="${PAPER}"/>${grid(W, H)}<rect x="0.5" y="0.5" width="${W - 1}" height="${H - 1}" fill="none" stroke="${RULE}"/>`;
-  // corner marks
-  s += mono(36, 40, 'Siddharthachuahan9 / README', 10.5, DIM);
-  s += mono(W - 36, 40, 'sidstack.in', 10.5, DIM, 'end');
-  // name + line
-  s += serif(34, 128, 'Siddhartha Chauhan', 58, INK, 700);
-  s += serif(36, 166, 'Generalist engineer. I sit between customers and code, and ship the thing in the middle.', 19, MUTE, 400, 'italic');
-  // facts, right column
-  const facts = [['now', 'forward deployed engineering and support, building AI agents for customers'], ['roles', 'solution architect · AI agent engineer · AI engineer · TAM'], ['base', 'Bengaluru · hybrid · remote'], ['rule', 'if the same problem shows up twice, it becomes a tool']];
-  facts.forEach(([k, v], i) => { const y = 210 + i * 26; s += label(36, y, k); s += mono(100, y, v, 12, INK); });
-  // the loop diagram
-  const steps = ['customer problem', 'understand', 'design', 'build', 'deploy', 'debug', 'improve'];
-  const y0 = 338, nh = 30, gap = 26, x0 = 36;
-  const widths = steps.map(t => Math.round(t.length * 7.4 + 28));
-  let x = x0; const centers = [];
-  s += `<defs><marker id="arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0.5 L7,4 L0,7.5" fill="none" stroke="${INK}" stroke-width="1.2"/></marker></defs>`;
-  steps.forEach((t, i) => {
-    const w = widths[i], first = i === 0;
-    s += `<rect x="${x}" y="${y0}" width="${w}" height="${nh}" rx="15" fill="${first ? ACCENT : PAPER}" stroke="${first ? ACCENT : INK}" stroke-width="1.2"/>`;
-    s += mono(x + w / 2, y0 + 19.5, t, 11, first ? PAPER : INK, 'middle', 500);
-    centers.push([x, x + w]);
-    if (i < steps.length - 1) s += `<line x1="${x + w}" y1="${y0 + nh / 2}" x2="${x + w + gap}" y2="${y0 + nh / 2}" stroke="${INK}" stroke-width="1.2" marker-end="url(#arr)"/>`;
-    x += w + gap;
-  });
-  // loop back from improve to understand
-  const [, lastR] = centers[centers.length - 1]; const [uL] = centers[1]; const ux = uL + (centers[1][1] - uL) / 2, ix = lastR - (centers[6][1] - centers[6][0]) / 2;
-  s += `<path d="M${ix},${y0 + nh} v14 H${ux} v-14" fill="none" stroke="${ACCENT}" stroke-width="1.2" stroke-dasharray="3 3" marker-end="url(#arr)"/>`;
-  s += mono(ux + 10, y0 + nh + 24, 'something will break. that is step five. then round again.', 10.5, DIM, 'start', 400);
-  s += label(W - 36, y0 + 19.5, 'how every engagement goes', 'end', DIM);
+  const W = 1200, H = 440;
+  let s = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><rect width="${W}" height="${H}" fill="${PAPER}"/>`;
+  s += label(36, 44, 'Siddhartha Chauhan', INK);
+  s += `<text x="${W - 36}" y="44" font-family="${SANS}" font-size="10" font-weight="700" letter-spacing="2" fill="${INK}" text-anchor="end"><tspan fill="${RED}">NO. 01</tspan>  ·  BENGALURU  ·  2026</text>`;
+  s += `<rect x="36" y="56" width="${W - 72}" height="3" fill="${INK}"/>`;
+  s += T(34, 150, 'The engineer', { s: 68, w: 700, ls: -2 });
+  s += T(34, 222, 'in the middle.', { s: 68, w: 700, ls: -2 });
+  wrap('A generalist who sits between customers and code, and ships the thing in between. Now doing forward deployed engineering and support, building AI agents for customers.', 64)
+    .forEach((l, i) => { s += T(36, 268 + i * 29, l, { s: 21, st: 'italic', c: MUTE }); });
+  // fact column
+  const cx = 846, tx = 862;
+  const facts = [['Roles', 'Solution architect, AI agent engineer, AI engineer, technical account manager'], ['Rule', 'If the same problem shows up twice, it becomes a tool'], ['Base', 'Bengaluru, hybrid or remote'], ['Status', 'Open to roles']];
+  let y = 112;
+  const y0 = y - 14;
+  facts.forEach(([k, v]) => { s += label(tx, y, k); y += 18; wrap(v, 40).forEach(l => { s += T(tx, y, l, { f: SANS, s: 13, c: INK }); y += 19; }); y += 12; });
+  s += `<rect x="${cx}" y="${y0}" width="3" height="${y - y0 - 22}" fill="${RED}"/>`;
+  // contents
+  s += `<line x1="36" y1="380" x2="${W - 36}" y2="380" stroke="${RULE}"/>`;
+  s += label(36, 408, "In this issue", DIM);
+  s += T(160, 408, '01 AgentIssue   02 TraceLens   03 json0.dev   04 PDFKit Pro   05 Linkzy   06 DevHelp AI', { f: SANS, s: 11, c: INK, ls: 0.5 });
+  s += T(W - 36, 408, 'sidstack.in', { f: SANS, s: 11, c: DIM, a: 'end' });
   s += '</svg>';
-  writeFileSync('assets/hero.svg', s);
+  writeFileSync('assets/cover.svg', s);
 }
 
-// ---------- project rows ----------
+// ---------- features ----------
 const projects = [
-  { id: 'agentissue', name: 'AgentIssue', url: 'agentissue.tech', kind: 'runtime guardrails for AI agents', blurb: 'A safety layer that checks every agent action before it runs. Allow, block, or wait for a human. Every decision lands in a signed audit trail.', stack: 'TypeScript · Cloudflare Workers · D1', status: 'building' },
-  { id: 'tracelens', name: 'TraceLens', url: 'tracelens.site', kind: 'open-source Chrome DevTools extension', blurb: 'Groups network requests into the click that caused them, explains slow or failing API calls in one sentence, decodes tokens, and writes the incident report.', stack: 'JavaScript · Manifest V3', status: 'live' },
-  { id: 'json0', name: 'json0.dev', url: 'json0.dev', kind: 'browser-only developer tools', blurb: 'Thirty-odd JSON, CSV and MongoDB tools. Diff, validate, query, format, JWT, hashing. Nothing you paste leaves your browser, and the build fails if it tries.', stack: 'Next.js · TypeScript', status: 'live' },
-  { id: 'pdfkit', name: 'PDFKit Pro', url: 'pdfkit.pro', kind: 'client-side PDF toolkit', blurb: 'About twenty free PDF tools: merge, split, compress, sign, OCR, Word to PDF and back. Files never leave the device, which matters when the file is a contract.', stack: 'Next.js · pdf-lib · tesseract.js', status: 'live' },
-  { id: 'linkzy', name: 'Linkzy', url: 'linkzy.fun', kind: 'link-in-bio on the edge', blurb: 'Runs entirely on Cloudflare’s free tier. Zero-package auth, edge-cached pages, analytics by country, and an API with llms.txt so agents can use it too.', stack: 'Hono · Workers · D1 · KV · R2', status: 'live' },
-  { id: 'devhelp', name: 'DevHelp AI', url: 'debugger-flax.vercel.app', kind: 'multi-model error explainer', blurb: 'Paste an error or stack trace, pick OpenAI, Anthropic, Gemini or Groq, get a calm explanation and a fix, with the cost of each answer shown beside it.', stack: 'Next.js · OpenAI, Anthropic, Gemini, Groq SDKs', status: 'live' },
+  { id: 'agentissue', name: 'AgentIssue', url: 'agentissue.tech', cap: 'AgentIssue deciding to block a destructive production action.', p1: 'AI agents now read, write and delete real data, and most teams have no gate between the model deciding and the action happening. When something goes wrong there is no record of what was allowed, who approved it, or why.', p2: 'AgentIssue sits between the agent and the resource. Every action is evaluated first and the answer is allow, ask a human, or block. Only an allowed action runs, exactly once, and every decision lands in a signed audit trail.', meta: 'TypeScript · Cloudflare Workers · D1 · Building' },
+  { id: 'tracelens', name: 'TraceLens', url: 'tracelens.site', cap: 'TraceLens reading one click on an orders page.', p1: 'A big part of customer engineering is staring at network tabs with a customer on the call. The information is there, but it is slow to read and hard to share.', p2: 'TraceLens is a Chrome DevTools extension that groups requests into the click that caused them, explains slow or failing calls in one sentence, decodes tokens in place, and writes the Jira report. Open source, one permission, nothing leaves the browser.', meta: 'JavaScript · Manifest V3 · Live · Open source' },
+  { id: 'json0', name: 'json0.dev', url: 'json0.dev', cap: 'The JSON diff tool, one of about thirty.', p1: 'Developers reach for the same small tools many times a day: diff this JSON, validate it, decode this token, hash that string. Most of the sites offering them quietly upload what you paste.', p2: 'json0.dev runs every tool in the browser. Share links keep the whole state in the URL hash, which never reaches a server, and a network guard fails the build if any tool tries to make a request it should not.', meta: 'Next.js · TypeScript · Monaco · Live' },
+  { id: 'pdfkit', name: 'PDFKit Pro', url: 'pdfkit.pro', cap: 'The PDFKit Pro front page.', p1: 'People handling contracts and IDs should not have to upload them to a stranger to merge two pages. About twenty PDF tools here, from merge and split to sign, OCR and Word to PDF, all processed on the device.', p2: 'An earlier version had accounts, billing and a Pro tier. The current one dropped all of it to stay simple. Simpler won.', meta: 'Next.js · pdf-lib · tesseract.js · Live' },
+  { id: 'linkzy', name: 'Linkzy', url: 'linkzy.fun', cap: 'The Linkzy landing page, where the URL is the headline.', p1: 'A link-in-bio service built entirely on Cloudflare’s free tier: Workers, D1, KV, R2 and Pages. Auth uses zero third-party packages, and public pages are served from the edge in about 80 ms.', p2: 'It is built for agents as much as people, with API keys, an llms.txt, an OpenAPI spec and a JSON twin of every page. It is also why I reach for Cloudflare first when something needs to be small, global and cheap.', meta: 'Hono · Workers · D1 · KV · R2 · Live' },
+  { id: 'devhelp', name: 'DevHelp AI', url: 'debugger-flax.vercel.app', cap: 'DevHelp AI, waiting for a stack trace.', p1: 'Paste an error or stack trace, pick OpenAI, Anthropic, Gemini or Groq, and get a calm explanation and a fix. It detects the language, framework and database from the text before asking the model.', p2: 'It started as a way to compare how different models handle the same production error, so the cost of each answer is shown right next to it.', meta: 'Next.js · OpenAI, Anthropic, Gemini and Groq SDKs · Live' },
 ];
 projects.forEach((p, i) => {
-  const W = 1200, H = 176, img = readFileSync(`assets/shots/${p.id}.jpg`).toString('base64');
-  let s = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`;
-  s += `<rect width="${W}" height="${H}" fill="${PAPER}"/><line x1="0" y1="0.5" x2="${W}" y2="0.5" stroke="${RULE}"/>`;
-  if (i === projects.length - 1) s += `<line x1="0" y1="${H - 0.5}" x2="${W}" y2="${H - 0.5}" stroke="${RULE}"/>`;
-  s += mono(36, 44, String(i + 1).padStart(2, '0'), 11, ACCENT, 'start', 600, 1);
-  s += serif(76, 50, p.name, 28, INK, 700);
-  s += mono(76 + p.name.length * 15.5 + 14, 48, p.kind, 11, DIM);
-  wrap(p.blurb, 92).forEach((l, j) => { s += serif(76, 80 + j * 21, l, 15, MUTE); });
-  s += label(76, 144, 'stack'); s += mono(126, 144, p.stack, 11, INK);
-  s += label(76, 162, 'status'); s += mono(126, 162, p.status, 11, p.status === 'building' ? ACCENT : INK, 'start', 600);
-  s += label(520, 144, 'at'); s += mono(542, 144, p.url + '  ↗', 11, INK, 'start', 600);
-  // screenshot window
-  const sx = 790, sy = 22, sw = 374, sh = 132;
-  s += `<clipPath id="c${i}"><rect x="${sx}" y="${sy}" width="${sw}" height="${sh}" rx="3"/></clipPath>`;
-  s += `<rect x="${sx + 4}" y="${sy + 4}" width="${sw}" height="${sh}" rx="3" fill="${INK}" opacity="0.12"/>`;
-  s += `<image href="data:image/jpeg;base64,${img}" x="${sx}" y="${sy}" width="${sw}" height="${sw * 599 / 1180}" preserveAspectRatio="xMidYMin slice" clip-path="url(#c${i})"/>`;
-  s += `<rect x="${sx + 0.5}" y="${sy + 0.5}" width="${sw - 1}" height="${sh - 1}" rx="3" fill="none" stroke="${INK}" stroke-width="1"/>`;
-  s += '</svg>';
-  writeFileSync(`assets/row-${p.id}.svg`, s);
+  const W = 1200, left = i % 2 === 0; // alternate: screenshot left on even rows
+  const img = readFileSync(`assets/shots/${p.id}.jpg`).toString('base64');
+  const SW = 460, SH = 234, sx = left ? 36 : W - 36 - SW, tx = left ? 540 : 36, tw = W - 36 - 540;
+  const maxc = 82, lh = 22;
+  let body = ''; let y = 72;
+  body += T(tx, y, p.name, { s: 36, w: 700, ls: -1 });
+  y += 34;
+  const l1 = wrap(p.p1, maxc - 12);
+  body += T(tx - 1, y + 26, p.p1[0], { s: 52, w: 700, c: RED });
+  l1.forEach((l, j) => { const first = j < 2; body += T(tx + (first ? 40 : 0), y + j * lh, first ? (j === 0 ? l.slice(1) : l) : l, { s: 15, c: INK }); });
+  y += l1.length * lh + 12;
+  wrap(p.p2, maxc).forEach((l, j) => { body += T(tx, y + j * lh, l, { s: 15, c: INK }); }); y += wrap(p.p2, maxc).length * lh + 10;
+  body += `<text x="${tx}" y="${y + 6}" font-family="${SANS}" font-size="10.5" font-weight="700" letter-spacing="1.5" fill="${DIM}">${esc(p.meta.toUpperCase())}   <tspan fill="${RED}">${esc(p.url.toUpperCase())} ↗</tspan></text>`;
+  const H = Math.max(y + 36, 310);
+  let s = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><rect width="${W}" height="${H}" fill="${PAPER}"/>`;
+  s += `<line x1="36" y1="0.5" x2="${W - 36}" y2="0.5" stroke="${RULE}"/>`;
+  s += `<clipPath id="c${i}"><rect x="${sx}" y="36" width="${SW}" height="${SH}"/></clipPath>`;
+  s += `<image href="data:image/jpeg;base64,${img}" x="${sx}" y="36" width="${SW}" height="${SW * 599 / 1180}" preserveAspectRatio="xMidYMin slice" clip-path="url(#c${i})"/>`;
+  s += `<rect x="${sx + 0.5}" y="36.5" width="${SW - 1}" height="${SH - 1}" fill="none" stroke="${INK}"/>`;
+  s += T(sx, 36 + SH + 18, `${String(i + 1).padStart(2, '0')}  ${p.cap}`, { f: SANS, s: 10.5, c: DIM, ls: 0.5 });
+  s += body + '</svg>';
+  writeFileSync(`assets/feature-${p.id}.svg`, s);
 });
 console.log('built', 1 + projects.length, 'svgs');
