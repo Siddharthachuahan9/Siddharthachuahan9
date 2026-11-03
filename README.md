@@ -25,7 +25,7 @@ I'm a generalist engineer in Bengaluru who likes sitting right between customers
 
 The roles that fit me best are **Solution Architect**, **AI Agent Engineer**, **AI Engineer** and **Technical Account Manager**. In practice I'm a bit of all four, usually in the same week.
 
-Right now I'm a Customer Engineer at [Hevo Data](https://hevodata.com), building integrations, AI agents and MCP servers for customers who have real deadlines and very little patience for things that almost work.
+Right now I'm at [Observe.AI](https://www.observe.ai), working as a Technical Support Engineer and AI Agent Engineer, building AI agents for customers who have real deadlines and very little patience for things that almost work. Before that, about three years as a Customer Engineer at [Hevo Data](https://hevodata.com), building integrations, AI agents and MCP servers.
 
 ## What I do
 

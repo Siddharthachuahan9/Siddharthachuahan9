@@ -57,7 +57,7 @@ const sans = (x, y, t, size = 14, fill = INK, weight = 400) => `<text x="${x}" y
   // left: identity
   s += `<text x="26" y="236" font-family="${SANS}" font-size="44" font-weight="700" fill="${INK}" letter-spacing="-1">Siddhartha Chauhan</text>`;
   s += sans(28, 266, 'Generalist engineer. I sit between customers and code, and ship the thing in the middle.', 15, MUTE);
-  const rows = [['now', 'building AI agents, MCP servers and integrations at Hevo Data'], ['roles', 'solution architect · AI agent engineer · AI engineer · TAM'], ['base', 'Bengaluru · hybrid · remote'], ['rule', 'if the same problem shows up twice, it becomes a tool']];
+  const rows = [['now', 'building AI agents for customers at Observe.AI'], ['roles', 'solution architect · AI agent engineer · AI engineer · TAM'], ['base', 'Bengaluru · hybrid · remote'], ['rule', 'if the same problem shows up twice, it becomes a tool']];
   rows.forEach(([k, v], i) => { const y = 306 + i * 30; s += label(28, y, k); s += mono(96, y, v, 12.5, INK); });
   // right: stats grid
   const gx = 800, gy = 196, gw = 376, gh = 250, cw = gw / 2, ch = gh / 2;
